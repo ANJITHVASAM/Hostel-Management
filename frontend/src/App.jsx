@@ -224,7 +224,7 @@ export default function App() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
               <ShieldAlert size={18} />
-              <span>Spring Boot backend server is connecting on <code>http://localhost:8080</code>...</span>
+              <span>Spring Boot backend server is connecting...</span>
             </div>
             <button className="btn btn-secondary btn-sm" onClick={loadAllData}>
               Retry Connection
