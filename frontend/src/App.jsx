@@ -9,7 +9,8 @@ import {
   LayoutDashboard,
   ShieldCheck,
   CheckCircle,
-  RefreshCw
+  RefreshCw,
+  Sparkles
 } from 'lucide-react';
 import { api } from './services/api';
 import WardenDashboard from './components/WardenDashboard';
@@ -32,6 +33,7 @@ export default function App() {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backendConnected, setBackendConnected] = useState(true);
+  const [demoMode, setDemoMode] = useState(false);
 
   // Modal States
   const [paymentModalStudent, setPaymentModalStudent] = useState(null);
@@ -50,9 +52,12 @@ export default function App() {
     }, 4000);
   };
 
-  // Load all data from Spring Boot API
-  const loadAllData = async () => {
+  // Load all data from Spring Boot API (with automatic interactive demo fallback for Vercel)
+  const loadAllData = async (forceBackend = false) => {
     try {
+      if (forceBackend) {
+        api.setMockMode(false);
+      }
       const [statsData, studentsData, roomsData, paymentsData] = await Promise.all([
         api.getDashboardStats(),
         api.getStudents(),
@@ -65,9 +70,26 @@ export default function App() {
       setRooms(roomsData);
       setPayments(paymentsData);
       setBackendConnected(true);
+      setDemoMode(false);
     } catch (err) {
-      console.error('API Error:', err);
+      console.warn('Backend server not reachable on', import.meta.env.VITE_API_BASE_URL || '/api', '- activating Interactive Demo Mode.');
+      api.setMockMode(true);
+      try {
+        const [statsData, studentsData, roomsData, paymentsData] = await Promise.all([
+          api.getDashboardStats(),
+          api.getStudents(),
+          api.getRooms(),
+          api.getAllPayments()
+        ]);
+        setStats(statsData);
+        setStudents(studentsData);
+        setRooms(roomsData);
+        setPayments(paymentsData);
+      } catch (mockErr) {
+        console.error('Demo mode initialization error:', mockErr);
+      }
       setBackendConnected(false);
+      setDemoMode(true);
     } finally {
       setLoading(false);
     }
@@ -209,8 +231,46 @@ export default function App() {
 
       {/* Content Area */}
       <main className="main-wrapper">
-        {/* Backend Connectivity Alert if offline */}
-        {!backendConnected && (
+        {/* Backend Status / Demo Mode Banner */}
+        {demoMode && (
+          <div style={{
+            background: 'linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%)',
+            border: '1px solid #c7d2fe',
+            color: '#3730a3',
+            borderRadius: '12px',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            boxShadow: '0 2px 4px rgba(79, 70, 229, 0.06)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', fontSize: '0.875rem' }}>
+              <div style={{ background: '#4f46e5', color: 'white', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                <Sparkles size={16} />
+              </div>
+              <div>
+                <strong style={{ color: '#1e1b4b' }}>Interactive Preview Mode Active</strong>
+                <span style={{ color: '#4b5563', marginLeft: '6px' }}>
+                  Spring Boot is offline or deploying. All fee management, stay extensions, rollbacks & receipts are fully interactive!
+                </span>
+              </div>
+            </div>
+            <button 
+              className="btn btn-secondary btn-sm" 
+              onClick={() => loadAllData(true)}
+              style={{ background: '#ffffff', fontWeight: 700 }}
+              title="Attempt to connect to Spring Boot backend at /api"
+            >
+              <RefreshCw size={13} />
+              Connect Live Backend
+            </button>
+          </div>
+        )}
+
+        {!backendConnected && !demoMode && (
           <div style={{
             background: '#fef2f2',
             border: '1px solid #fecaca',
@@ -226,7 +286,7 @@ export default function App() {
               <ShieldAlert size={18} />
               <span>Spring Boot backend server is connecting...</span>
             </div>
-            <button className="btn btn-secondary btn-sm" onClick={loadAllData}>
+            <button className="btn btn-secondary btn-sm" onClick={() => loadAllData(true)}>
               Retry Connection
             </button>
           </div>
