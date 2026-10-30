@@ -8,6 +8,7 @@ RUN mvn clean package -DskipTests
 # Run Stage
 FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
+RUN mkdir -p /app/data
 COPY --from=build /app/target/*.jar app.jar
 ENV PORT=8080
 EXPOSE 8080

@@ -5,7 +5,18 @@ import {
   recalculateStudent 
 } from './demoData';
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+// Automatically normalize API URL whether user includes /api or trailing slash
+function resolveApiBase() {
+  const envUrl = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (!envUrl) return '/api';
+  let cleaned = envUrl.replace(/\/+$/, '');
+  if (!cleaned.endsWith('/api')) {
+    cleaned += '/api';
+  }
+  return cleaned;
+}
+
+const API_BASE = resolveApiBase();
 
 let _mockMode = false;
 
